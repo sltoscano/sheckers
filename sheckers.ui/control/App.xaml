@@ -1,0 +1,23 @@
+﻿<Application x:Class="sheckersui.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    StartupUri="../view/FrameWindow.xaml">
+    <Application.Resources>
+        <BitmapImage x:Key="playerturn" UriSource="../view/img/playerturn.png"/>
+        <BitmapImage x:Key="playernoturn" UriSource="../view/img/playernoturn.png"/>
+        <BitmapImage x:Key="blackpiece" UriSource="../view/img/blackpiecesm.png"/>
+        <BitmapImage x:Key="redpiece" UriSource="../view/img/redpiecesm.png"/>
+        <BitmapImage x:Key="blackpiece_shadow" UriSource="../view/img/blackpiecesm_shadow.png"/>
+        <BitmapImage x:Key="redpiece_shadow" UriSource="../view/img/redpiecesm_shadow.png"/>
+        <BitmapImage x:Key="blacksquare0" UriSource="../view/img/black0.png"/>
+        <BitmapImage x:Key="blacksquare1" UriSource="../view/img/black1.png"/>
+        <BitmapImage x:Key="blacksquare2" UriSource="../view/img/black2.png"/>
+        <BitmapImage x:Key="blacksquare3" UriSource="../view/img/black3.png"/>
+        <BitmapImage x:Key="blacksquare4" UriSource="../view/img/black4.png"/>
+        <BitmapImage x:Key="whitesquare0" UriSource="../view/img/white0.png"/>
+        <BitmapImage x:Key="whitesquare1" UriSource="../view/img/white1.png"/>
+        <BitmapImage x:Key="whitesquare2" UriSource="../view/img/white2.png"/>
+        <BitmapImage x:Key="whitesquare3" UriSource="../view/img/white3.png"/>
+        <BitmapImage x:Key="whitesquare4" UriSource="../view/img/white4.png"/>
+    </Application.Resources>
+</Application>

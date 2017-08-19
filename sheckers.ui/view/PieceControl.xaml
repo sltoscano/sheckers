@@ -1,0 +1,30 @@
+﻿<UserControl x:Class="sheckersui.PieceControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:sheckersui">
+    <UserControl.RenderTransform>
+        <TransformGroup>
+            <TranslateTransform X="0" Y="0"/>
+        </TransformGroup>
+    </UserControl.RenderTransform>
+    <UserControl.Resources>
+        <local:PieceAdorner x:Key="adorner"/>
+        <Storyboard x:Key="autoMove" FillBehavior="Stop">
+            <DoubleAnimation BeginTime="00:00:00" Duration="00:00:00.25" AccelerationRatio=".1" DecelerationRatio=".9" Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(TranslateTransform.X)" />
+            <DoubleAnimation BeginTime="00:00:00" Duration="00:00:00.25" AccelerationRatio=".1" DecelerationRatio=".9"  Storyboard.TargetProperty="(UIElement.RenderTransform).(TransformGroup.Children)[0].(TranslateTransform.Y)" />
+        </Storyboard>
+    </UserControl.Resources>
+    <DockPanel Name="pieceDock" VerticalAlignment="Center" HorizontalAlignment="Center" Cursor="Hand"
+            local:DragDropHelper.AdornerLayer="adornLayer"
+            local:DragDropHelper.DragDropControl="{StaticResource adorner}"
+            local:DragDropHelper.IsDragSource="true">
+        <Image x:Name="pieceImage" Source="{Binding ImgWithShadow}"/>
+        <!-- The drop shadows are slow to redraw so using harddrawn shadow instead
+        <Image x:Name="pieceImage" Source="{Binding Img}">
+        <Image.BitmapEffect>
+            <DropShadowBitmapEffect Color="Black" Direction="260" ShadowDepth="10" Softness="0.75" Opacity="0.75"/>
+        </Image.BitmapEffect>
+        </Image>
+        -->
+    </DockPanel>
+</UserControl>

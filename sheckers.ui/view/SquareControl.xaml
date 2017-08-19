@@ -1,0 +1,7 @@
+﻿<UserControl x:Class="sheckersui.SquareControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+        <Image x:Name="squareImage" Source="{Binding Img}"/>
+    </DockPanel>
+</UserControl>
