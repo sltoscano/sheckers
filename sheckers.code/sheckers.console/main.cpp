@@ -1,12 +1,20 @@
 // Copyright: Steven Toscano
 
+/*
 #include "std.h"
 #include "common.h"
-#include "factories.h"
 #include "memleak.h"
 #include "io.h"
+#include "factories.h"
+*/
 
-#define AUTOMATED
+#include <memory>
+using namespace std::tr1;
+
+shared_ptr<char*> foo;
+//#include "ui.h"
+
+#undef AUTOMATED
 extern "C" void __stdcall Sleep(int dwMilliseconds);
 
 int main(int argc, char* argv[])
@@ -23,7 +31,7 @@ int main(int argc, char* argv[])
 	wstring wstrPlayer1 = L"Fred";
 	PlayerKind pkPlayer1 = pkComputerHard;
 	wstring wstrPlayer2 = L"George";
-	PlayerKind pkPlayer2 = pkComputerHard;
+	PlayerKind pkPlayer2 = pkComputerEasy;
 #else
 	int iBoardRowSize;
 	if (!input.ReadBoardRowSize(&iBoardRowSize))
@@ -48,7 +56,7 @@ int main(int argc, char* argv[])
 		return 1;
 #endif
 
-	IPlayerPtr spPlayer1(PlayerFactory::Create(pkPlayer1, wstrPlayer1, ptRed, iPieceCount));
+	IPlayerPtr spPlayer1(PlayerFactory::Create(pkPlayer1, wstrPlayer1, ptRed, iPieceCount), PlayerFactory::Destroy);
 	IPlayerPtr spPlayer2(PlayerFactory::Create(pkPlayer2, wstrPlayer2, ptBlack, iPieceCount));
 
 	IBoardPtr spBoard(BoardFactory::Create(gk, iBoardRowSize, iBoardRowSize));

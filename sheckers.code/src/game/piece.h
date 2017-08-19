@@ -3,23 +3,18 @@
 #pragma once
 
 class Piece : 
-	public IPiece,
-	public CAutoRef
+	public IPiece
 {
 public:
 	Piece(PieceType pt);
 	~Piece();
 
-	// IReferenceCounted methods
-	long AddRef();
-	long Release();
-
 	// IPiece methods
-	bool GetType(enum PieceType *ppt) const;
-	bool GetPosition(int *piPosition) const;
-	bool SetPosition(int iPosition);
-	bool GetDirection(enum DirectionKind *pdk) const;
-	bool SetDirection(enum DirectionKind dk);
+	PieceType GetType() const;
+	int GetPosition() const;
+	void SetPosition(int iPosition);
+	DirectionKind GetDirection() const;
+	void SetDirection(enum DirectionKind dk);
 
 private:
 	DirectionKind m_dk;

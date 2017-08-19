@@ -3,19 +3,14 @@
 #pragma once
 
 class Game :
-	public IGame,
-	public CAutoRef
+	public IGame
 {
 public:
-	Game(IBoard *pBoard);
+	Game(IBoardPtr spBoard);
 	~Game();
 
-	// IReferenceCounted methods
-	long AddRef();
-	long Release();
-
 	// IGame methods
-	void Start(IPlayer *pPlayer1, IPlayer *pPlayer2);
+	void Start(IPlayerPtr spPlayer1, IPlayerPtr spPlayer2);
 	void SetState(GameState gs);
 	bool IsOver() const;
 	GameState GetState() const;
@@ -27,7 +22,7 @@ private:
 	IBoardPtr m_spBoard;
 	GameState m_gs;
 	int m_iTurnCount;
-	short m_turn;
+	char m_turn;
 
 private:
 	// Disallow copy and assignment

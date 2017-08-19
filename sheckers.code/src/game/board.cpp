@@ -1,6 +1,5 @@
 // Copyright: Steven Toscano
 
-#include "std.h"
 #include "common.h"
 
 #include "factories.h"
@@ -13,7 +12,7 @@ Board::Board(int iRowSize)
 	m_board.resize(iRowSize * iRowSize);
 
 	// Initialize as an empty board
-	short toggleColorStart = 0;
+	char toggleColorStart = 0;
 	for (int iRow = 0; iRow < iRowSize; iRow++)
 	{
 		toggleColorStart ^= 1;
@@ -21,14 +20,13 @@ Board::Board(int iRowSize)
 		{
 			int iPos = (iRow * iRowSize) + iCol;
 			m_board[iPos].fOccupied = false;
-			m_board[iPos].spPiece.Release();
 			if (toggleColorStart == 1)
 			{
-				m_board[iPos].scColor = (iCol % 2 == 0) ? scBlack : scRed;
+				m_board[iPos].scColor = (iCol % 2 == 0) ? scBlack : scWhite;
 			}
 			else
 			{
-				m_board[iPos].scColor = (iCol % 2 == 0) ? scRed : scBlack;
+				m_board[iPos].scColor = (iCol % 2 == 0) ? scWhite : scBlack;
 			}
 		}
 	}
@@ -38,22 +36,10 @@ Board::~Board()
 {
 }
 
-long Board::AddRef()
+bool Board::Setup(IPlayerPtr spPlayer1, IPlayerPtr spPlayer2)
 {
-	return CAutoRef::AddRef();
-}
-
-long Board::Release()
-{
-	return CAutoRef::Release();
-}
-
-bool Board::Setup(IPlayer *pPlayer1, IPlayer *pPlayer2)
-{
-	IPlayerPtr spPlayer1(pPlayer1);
-	IPlayerPtr spPlayer2(pPlayer2);
-	FAILED_ASSERT_RETURN(false, spPlayer1 != NULL);
-	FAILED_ASSERT_RETURN(false, spPlayer2 != NULL);
+	FAILED_ASSERT_RETURN(false, spPlayer1);
+	FAILED_ASSERT_RETURN(false, spPlayer2);
 
 	m_spPlayer1 = spPlayer1;
 	m_spPlayer2 = spPlayer2;
@@ -67,17 +53,15 @@ bool Board::Setup(IPlayer *pPlayer1, IPlayer *pPlayer2)
 	return true;
 }
 
-bool Board::AddPieces(IPlayer *pPlayer)
+bool Board::AddPieces(IPlayerPtr spPlayer)
 {
-	IPlayerPtr spPlayer(pPlayer);
 	int iPieceCount = spPlayer->GetInitialPieceCount();
 
 	FAILED_ASSERT_RETURN(false, iPieceCount > 0);
 	FAILED_ASSERT_RETURN(false, iPieceCount * 2 * 2 <= GetBoardSize());
 
 	int iStartFillPosition;
-	PieceType pt;
-	FAILED_ASSERT_RETURN(false, spPlayer->GetType(&pt));
+	PieceType pt = spPlayer->GetType();
 	DirectionKind dk = (pt == ptRed) ? dkDown : dkUp;
 
 	// Start placing pieces depending on orientation for an 8x8
@@ -89,15 +73,15 @@ bool Board::AddPieces(IPlayer *pPlayer)
 	else
 		iStartFillPosition = GetBoardSize() - (iPieceCount * 2);
 
-	int iPlacedCount = 0;  
+	int iPlacedCount = 0;
 	for (int i = iStartFillPosition; i < GetBoardSize(); i++)
 	{
 		// Pieces are only placed on the same color square
-		if (m_board[i].scColor == scRed)
+		if (m_board[i].scColor == scWhite)
 		{
 			IPiecePtr spPiece(PieceFactory::Create(pt));
-			FAILED_ASSERT_RETURN(false, spPiece != NULL);
-			FAILED_ASSERT_RETURN(false, spPiece->SetDirection(dk));
+			FAILED_ASSERT_RETURN(false, spPiece);
+			spPiece->SetDirection(dk);
 			FAILED_ASSERT_RETURN(false, spPlayer->AddPiece(spPiece));
 			FAILED_ASSERT_RETURN(false, PlacePiece(i, spPiece));
 			iPlacedCount++;
@@ -108,24 +92,20 @@ bool Board::AddPieces(IPlayer *pPlayer)
 	return true;
 }
 
-bool Board::PlacePiece(int iPosition, IPiece *pPiece)
+bool Board::PlacePiece(int iPosition, IPiecePtr spPiece)
 {
 	FAILED_ASSERT_RETURN(false, iPosition >= 0);
 	FAILED_ASSERT_RETURN(false, iPosition < GetBoardSize());
 
-	IPiecePtr spPiece(pPiece);
-	FAILED_ASSERT_RETURN(false, spPiece != NULL);
+	FAILED_ASSERT_RETURN(false, spPiece);
 
 	// Not asserting here since a user can ask if its
 	//	possible to place a piece at this position
 	FAILED_RETURN(false, !m_board[iPosition].fOccupied);
 	FAILED_RETURN(false, m_board[iPosition].spPiece == NULL);
 
-	int iOldPosition;
-	FAILED_ASSERT_RETURN(false, spPiece->GetPosition(&iOldPosition));
-	FAILED_ASSERT_RETURN(false, iOldPosition == EmptyPosition);
-	
-	FAILED_ASSERT_RETURN(false, spPiece->SetPosition(iPosition));
+	FAILED_ASSERT_RETURN(false, spPiece->GetPosition() == EmptyPosition);
+	spPiece->SetPosition(iPosition);
 
 	// Place the piece on the board
 	m_board[iPosition].fOccupied = true;
@@ -133,46 +113,45 @@ bool Board::PlacePiece(int iPosition, IPiece *pPiece)
 	return true;
 }
 
-bool Board::RemovePiece(int iPosition, IPiece **ppPiece)
+IPiecePtr Board::RemovePiece(int iPosition)
+//bool Board::RemovePiece(int iPosition, IPiece **ppPiece)
 {
-	FAILED_ASSERT_RETURN(false, iPosition >= 0);
-	FAILED_ASSERT_RETURN(false, iPosition < GetBoardSize());
-
-	if (ppPiece == NULL)
-		return false;
+	FAILED_ASSERT_RETURN(IPiecePtr(), iPosition >= 0);
+	FAILED_ASSERT_RETURN(IPiecePtr(), iPosition < GetBoardSize());
 
 	// Can only remove a piece if it exists on the board
-	FAILED_ASSERT_RETURN(false, m_board[iPosition].fOccupied);
-	FAILED_ASSERT_RETURN(false, m_board[iPosition].spPiece != NULL);
+	FAILED_ASSERT_RETURN(IPiecePtr(), m_board[iPosition].fOccupied);
+	FAILED_ASSERT_RETURN(IPiecePtr(), m_board[iPosition].spPiece);
 
 	// Remove the piece from the board
 	IPiecePtr spPieceToMove(m_board[iPosition].spPiece);
-	FAILED_ASSERT_RETURN(false, spPieceToMove->SetPosition(EmptyPosition));
+	spPieceToMove->SetPosition(EmptyPosition);
 
 	// Clear the board
 	m_board[iPosition].fOccupied = false;
-	m_board[iPosition].spPiece.Release();
+	m_board[iPosition].spPiece.reset();
 
 	// Give the piece to the user
-	*ppPiece = spPieceToMove.Detach();
-	return true;
+	return spPieceToMove;
 }
 
-bool Board::GetPiece(int iPosition, IPiece **ppPiece) const
+IPiecePtr Board::GetPiece(int iPosition) const
 {
-	FAILED_ASSERT_RETURN(false, iPosition >= 0);
-	FAILED_ASSERT_RETURN(false, iPosition < GetBoardSize());
-
-	if (ppPiece == NULL)
-		return false;
-
-	if (!m_board[iPosition].fOccupied)
-		return false;
+	FAILED_ASSERT_RETURN(IPiecePtr(), iPosition >= 0);
+	FAILED_ASSERT_RETURN(IPiecePtr(), iPosition < GetBoardSize());
+	
+	// Return an empty pointer if the position is not occupied
+	FAILED_RETURN(IPiecePtr(), m_board[iPosition].fOccupied);
 
 	// Addref it and copy it out to the user
-	IPiecePtr spPiece = m_board[iPosition].spPiece;
-	*ppPiece = spPiece.Detach();
-	return true;
+	return m_board[iPosition].spPiece;
+}
+
+IPlayerPtr Board::GetPlayer(PieceType pt) const
+{
+	PieceType ptPlayer1 = m_spPlayer1->GetType();
+
+	return (pt == ptPlayer1) ? m_spPlayer1 : m_spPlayer2;
 }
 
 bool Board::IsOccupied(int iPosition) const
@@ -182,15 +161,11 @@ bool Board::IsOccupied(int iPosition) const
 	return m_board[iPosition].fOccupied;
 }
 
-bool Board::GetSquareColor(int iPosition, SquareColor *psc) const
+SquareColor Board::GetSquareColor(int iPosition) const
 {
-	if (psc == NULL)
-		return false;
-
-	FAILED_ASSERT_RETURN(false, iPosition >= 0);
-	FAILED_ASSERT_RETURN(false, iPosition < GetBoardSize());
-	*psc = m_board[iPosition].scColor;
-	return true;
+	FAILED_ASSERT_RETURN(scWhite, iPosition >= 0);
+	FAILED_ASSERT_RETURN(scWhite, iPosition < GetBoardSize());
+	return m_board[iPosition].scColor;
 }
 
 int Board::GetColSize() const
@@ -236,114 +211,93 @@ int Board::GetNewPositionIfMoved(int iPos, MoveKind mk, DirectionKind dk) const
 	return movement.GetNewPositionIfMoved(iPos, dk, mk);
 }
 
-bool Board::CanLosePiece(IPlayer *pPlayer, int iFromPos, int iToPos) const
+bool Board::CanLosePiece(IPlayerPtr spPlayer, int iFromPos, int iToPos) const
 {
 	MovementPrimitives movement(this);
-	return movement.CanLosePiece(pPlayer, iFromPos, iToPos);
+	return movement.CanLosePiece(spPlayer, iFromPos, iToPos);
 }
 
-bool Board::TryMove(int iPos, MoveKind mk, DirectionKind dk, MoveResult *pmr) const
+MoveResult Board::TryMove(int iFromPos, MoveKind mk, DirectionKind dk) const
 {
-	if (pmr == NULL)
-		return false;
-
 	MovementPrimitives movement(this);
-	if (movement.IsMoveGoingOutsideBoard(iPos, dk, mk))
+	if (movement.IsMoveGoingOutsideBoard(iFromPos, dk, mk))
 	{
-		*pmr = mrIllegal;
-		return true;
+		return mrIllegal;
 	}
 
-	int newPos = movement.GetNewPositionIfMoved(iPos, dk, mk);
+	int newPos = movement.GetNewPositionIfMoved(iFromPos, dk, mk);
 	if (m_board[newPos].fOccupied)
 	{
 		// If opponent piece the check if a jump is legal
-		if (movement.IsJumpPossible(iPos, dk, mk))
+		if (movement.IsJumpPossible(iFromPos, dk, mk))
 		{
-			*pmr = mrLegalJump;
-			return true;
+			return mrLegalJump;
 		}
 		else
 		{
-			*pmr = mrIllegal;
-			return true;
+			return mrIllegal;
 		}
 	}
 	else
 	{
-		*pmr = mrLegalNonJump;
-		return true;
+		return mrLegalNonJump;
 	}
 }
 
-bool Board::PerformLegalMove(IPlayer *pPlayer, int iSourcePos, DirectionKind dkSource, MoveKind mk, MoveResult *pmr)
+MoveResult Board::PerformLegalMove(IPlayerPtr spPlayer, int iFromPos, MoveKind mk, DirectionKind dkSource)
 {
-	if (pmr == NULL)
-		return false;
-
-	IPlayerPtr spPlayer(pPlayer);
-	FAILED_ASSERT_RETURN(false, spPlayer != NULL);
-	FAILED_ASSERT_RETURN(false, spPlayer->SetLastMovePosition(EmptyPosition));
+	FAILED_ASSERT_RETURN(mrError, spPlayer);
+	spPlayer->SetLastMovePosition(EmptyPosition);
 	
 	MovementPrimitives movement(this);
 
-	if (movement.IsMoveGoingOutsideBoard(iSourcePos, dkSource, mk))
+	if (movement.IsMoveGoingOutsideBoard(iFromPos, dkSource, mk))
 	{
 		ASSERTMSG(false, "Making this move is NOT legal, call TryMove first");
-		*pmr = mrIllegal;
-		return false;
+		return mrIllegal;
 	}
 
-	int iTargetPos = movement.GetNewPositionIfMoved(iSourcePos, dkSource, mk);
+	int iTargetPos = movement.GetNewPositionIfMoved(iFromPos, dkSource, mk);
 	if (m_board[iTargetPos].fOccupied)
 	{
-		PieceType ptSource;
-		FAILED_ASSERT_RETURN(false, spPlayer->GetType(&ptSource));
-		PieceType ptTarget;
-		FAILED_ASSERT_RETURN(false, m_board[iTargetPos].spPiece->GetType(&ptTarget));
+		PieceType ptSource = spPlayer->GetType();
+		PieceType ptTarget = m_board[iTargetPos].spPiece->GetType();
 		if (ptSource == ptTarget)
 		{
 			ASSERTMSG(false, "Making this jump is NOT legal, call TryMove first");
-			*pmr = mrIllegal;
-			return false;
+			return mrIllegal;
 		}
 		else
 		{
 			// Remove the piece to move from the board
-			IPiecePtr spPieceToMove;
-			FAILED_ASSERT_RETURN(false, RemovePiece(iSourcePos, &spPieceToMove));
+			IPiecePtr spPieceToMove = RemovePiece(iFromPos);
 
 			// Remove the jumped piece from the board
-			IPiecePtr spJumpedPiece;
-			FAILED_ASSERT_RETURN(false, RemovePiece(iTargetPos, &spJumpedPiece));
+			IPiecePtr spJumpedPiece = RemovePiece(iTargetPos);
 
 			// Take away the piece from the other player
 			IPlayerPtr spOpponent = (spPlayer == m_spPlayer1) ? m_spPlayer2 : m_spPlayer1;
-			FAILED_ASSERT_RETURN(false, spOpponent->LosePiece(spJumpedPiece));
+			FAILED_ASSERT_RETURN(mrError, spOpponent->LosePiece(spJumpedPiece));
 
 			// Place the moved piece to the empty spot
 			int iNewJumpPos = movement.GetNewPositionIfMoved(iTargetPos, dkSource, mk);
-			FAILED_ASSERT_RETURN(false, PlacePiece(iNewJumpPos, spPieceToMove));
+			FAILED_ASSERT_RETURN(mrError, PlacePiece(iNewJumpPos, spPieceToMove));
 
 			// Add piece to current player's captured list
-			FAILED_ASSERT_RETURN(false, spPlayer->CapturePiece(spJumpedPiece));
+			FAILED_ASSERT_RETURN(mrError, spPlayer->CapturePiece(spJumpedPiece));
 
 			// Record the last move position to allow future jumps
-			FAILED_ASSERT_RETURN(false, spPlayer->SetLastMovePosition(iNewJumpPos));
-			*pmr = mrLegalJump;
-			return true;
+			spPlayer->SetLastMovePosition(iNewJumpPos);
+			return mrLegalJump;
 		}
 	}
 	else
 	{
 		// Square is not occupied so this is a normal non-jump move
-		IPiecePtr spPieceToMove;
-		FAILED_ASSERT_RETURN(false, RemovePiece(iSourcePos, &spPieceToMove));
-		FAILED_ASSERT_RETURN(false, PlacePiece(iTargetPos, spPieceToMove));
-		*pmr = mrLegalNonJump;
-		return true;
+		IPiecePtr spPieceToMove = RemovePiece(iFromPos);
+		FAILED_ASSERT_RETURN(mrError, PlacePiece(iTargetPos, spPieceToMove));
+		return mrLegalNonJump;
 	}
 
-	*pmr = mrIllegal;
-	return false;
+	return mrIllegal;
 }

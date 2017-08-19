@@ -1,15 +1,14 @@
 // Copyright: Steven Toscano
 
-#include "std.h"
 #include "common.h"
 
 #include "game.h"
 
-Game::Game(IBoard *pBoard) :
+Game::Game(IBoardPtr spBoard) :
 	m_turn(0),
 	m_iTurnCount(0),
 	m_gs(gsNotStarted),
-	m_spBoard(pBoard)
+	m_spBoard(spBoard)
 {
 }
 
@@ -17,25 +16,15 @@ Game::~Game()
 {
 }
 
-long Game::AddRef()
-{
-	return CAutoRef::AddRef();
-}
-
-long Game::Release()
-{
-	return CAutoRef::Release();
-}
-
-void Game::Start(IPlayer *pPlayer1, IPlayer *pPlayer2)
+void Game::Start(IPlayerPtr spPlayer1, IPlayerPtr spPlayer2)
 {
 	FAILED_ASSERT_RETURN(, m_spBoard != NULL);
 
 	m_turn = 0;
 	m_iTurnCount = 0;
 	m_gs = gsStarted;
-	m_spPlayer1 = pPlayer1;
-	m_spPlayer2 = pPlayer2;
+	m_spPlayer1 = spPlayer1;
+	m_spPlayer2 = spPlayer2;
 	m_spBoard->Setup(m_spPlayer1, m_spPlayer2);
 }
 

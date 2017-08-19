@@ -10,46 +10,41 @@ struct Square
 };
 
 class Board :
-	public IBoard,
-	public CAutoRef
+	public IBoard
 {
 public:
 	Board(int iRowSize);
 	~Board();
 
-	// IReferenceCounted methods
-	long AddRef();
-	long Release();
-
 	// IBoard methods
-	bool Setup(IPlayer *pPlayer1, IPlayer *pPlayer2);
-	bool PlacePiece(int iPosition, IPiece *pPiece);
-	bool RemovePiece(int iPosition, IPiece **ppPiece);
-	bool GetPiece(int iPosition, IPiece **ppPiece) const;
+	bool Setup(IPlayerPtr spPlayer1, IPlayerPtr spPlayer2);
+	bool PlacePiece(int iPosition, IPiecePtr spPiece);
+	IPiecePtr RemovePiece(int iPosition);
+	IPiecePtr GetPiece(int iPosition) const;
 	bool IsOccupied(int iPosition) const;
-	bool GetSquareColor(int iPosition, SquareColor *psc) const;
-	int  GetColSize() const;
-	int  GetRowSize() const;
-	int  GetBoardSize() const;
+	SquareColor GetSquareColor(int iPosition) const;
+	int GetRowSize() const;
+	int GetColSize() const;
+	int GetBoardSize() const;
 	bool IsPositionAtEdge(int iPos) const;
-	int  GetNewPositionIfMoved(int iPos, MoveKind mk, DirectionKind dk) const;
-	bool CanLosePiece(IPlayer *pPlayer, int iFromPos, int iToPos) const;
-	bool TryMove(int iPos, MoveKind mk, DirectionKind dk, MoveResult *pmr) const;
-	bool PerformLegalMove(IPlayer *pPlayer, int iSourcePos, DirectionKind dkSource, MoveKind mk, MoveResult *pmr);
+	int GetNewPositionIfMoved(int iPos, MoveKind mk, DirectionKind dk) const;
+	bool CanLosePiece(IPlayerPtr spPlayer, int iFromPos, int iToPos) const;
+	MoveResult TryMove(int iFromPos, MoveKind mk, DirectionKind dk) const;
+	MoveResult PerformLegalMove(IPlayerPtr spPlayer, int iFromPos, MoveKind mk, DirectionKind dkSource);
 
 private:
 	// Non interface methods
-	bool AddPieces(IPlayer *pPlayer);
+	bool AddPieces(IPlayerPtr spPlayer);
 
 	class MovementPrimitives
 	{
 		friend class Board;
-		MovementPrimitives(const IBoard *pBoard);
+		MovementPrimitives(const Board * pBoard);
 		bool IsMoveGoingOutsideBoard(int iPos, DirectionKind dk, MoveKind mk) const;
-		bool CanLosePiece(IPlayer *pPlayer, int iFromPos, int iToPos) const;
+		bool CanLosePiece(IPlayerPtr spPlayer, int iFromPos, int iToPos) const;
 		int  GetNewPositionIfMoved(int iPos, DirectionKind dk, MoveKind mk) const;
 		bool IsJumpPossible(int iPos, DirectionKind dk, MoveKind mk) const;
-		IBoardPtr m_spBoard;
+		const Board * m_pBoard;
 	};
 
 private:

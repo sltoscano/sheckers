@@ -1,18 +1,17 @@
 // Copyright: Steven Toscano
 
-#include "std.h"
 #include "common.h"
 
 #include "board.h"
 
-Board::MovementPrimitives::MovementPrimitives(const IBoard *pBoard) :
-	m_spBoard(const_cast<IBoard *>(pBoard))
+Board::MovementPrimitives::MovementPrimitives(const Board * pBoard) :
+	m_pBoard(pBoard)
 {
 }
 
 bool Board::MovementPrimitives::IsMoveGoingOutsideBoard(int iPos, DirectionKind dk, MoveKind mk) const
 {
-	int iRowSize = m_spBoard->GetRowSize();
+	int iRowSize = m_pBoard->GetRowSize();
 
 	if (dk == dkDown)
 	{
@@ -67,7 +66,7 @@ bool Board::MovementPrimitives::IsMoveGoingOutsideBoard(int iPos, DirectionKind 
 
 int Board::MovementPrimitives::GetNewPositionIfMoved(int iPos, DirectionKind dk, MoveKind mk) const
 {
-	int iRowSize = m_spBoard->GetRowSize();
+	int iRowSize = m_pBoard->GetRowSize();
 
 	int iHorizontalOffset = (dk == dkDown) ?
 		iRowSize : -iRowSize;
@@ -80,27 +79,24 @@ int Board::MovementPrimitives::GetNewPositionIfMoved(int iPos, DirectionKind dk,
 
 bool Board::MovementPrimitives::IsJumpPossible(int iPos, DirectionKind dk, MoveKind mk) const
 {
-	if (!m_spBoard->IsOccupied(iPos))
+	if (!m_pBoard->IsOccupied(iPos))
 		return false;
 
-	PieceType ptSource;
-	IPiecePtr spSource;
-	FAILED_ASSERT_RETURN(false, m_spBoard->GetPiece(iPos, &spSource));
-	FAILED_ASSERT_RETURN(false, spSource != NULL);
-	FAILED_ASSERT_RETURN(false, spSource->GetType(&ptSource));
+	IPiecePtr spSource = m_pBoard->GetPiece(iPos);
+	FAILED_ASSERT_RETURN(false, spSource);
+	PieceType ptSource = spSource->GetType();
 
 	if (IsMoveGoingOutsideBoard(iPos, dk, mk))
 		return false;
 
 	int iNewPos = GetNewPositionIfMoved(iPos, dk, mk);
 
-	if (!m_spBoard->IsOccupied(iNewPos))
+	if (!m_pBoard->IsOccupied(iNewPos))
 		return false;
 
-	PieceType ptJumpTarget;
-	IPiecePtr spJumpTarget;
-	FAILED_ASSERT_RETURN(false, m_spBoard->GetPiece(iNewPos, &spJumpTarget));
-	FAILED_ASSERT_RETURN(false, spJumpTarget->GetType(&ptJumpTarget));
+	IPiecePtr spJumpTarget = m_pBoard->GetPiece(iNewPos);
+	FAILED_ASSERT_RETURN(false, spJumpTarget);
+	PieceType ptJumpTarget = spJumpTarget->GetType();
 
 	// Can only jump pieces from a different player
 	if (ptSource == ptJumpTarget)
@@ -111,65 +107,59 @@ bool Board::MovementPrimitives::IsJumpPossible(int iPos, DirectionKind dk, MoveK
 
 	int iPosAfterJump = GetNewPositionIfMoved(iNewPos, dk, mk);
 
-	if (m_spBoard->IsOccupied(iPosAfterJump))
+	if (m_pBoard->IsOccupied(iPosAfterJump))
 		return false;
 
 	return true;
 }
 
 
-bool Board::MovementPrimitives::CanLosePiece(IPlayer *pPlayer, int iFromPos, int iToPos) const
+bool Board::MovementPrimitives::CanLosePiece(IPlayerPtr spPlayer, int iFromPos, int iToPos) const
 {
-	IPlayerPtr spPlayer(pPlayer);
-	FAILED_ASSERT_RETURN(false, spPlayer != NULL);
+	FAILED_ASSERT_RETURN(false, spPlayer);
 
 	// If the new position after a jump is at the edge
 	//	then it can't be jumped by the opponent
-	if (m_spBoard->IsPositionAtEdge(iToPos))
+	if (m_pBoard->IsPositionAtEdge(iToPos))
 		return false;
 
 	// Otherwise check to see if an opponent piece is
 	//	poised for a legal jump over the new position
-	int iTopLeft = iToPos - m_spBoard->GetRowSize() - 1;
-	int iTopRight = iToPos - m_spBoard->GetRowSize() + 1;
-	int iBottomLeft = iToPos + m_spBoard->GetRowSize() - 1;
-	int iBottomRight = iToPos + m_spBoard->GetRowSize() + 1;
+	int iTopLeft = iToPos - m_pBoard->GetRowSize() - 1;
+	int iTopRight = iToPos - m_pBoard->GetRowSize() + 1;
+	int iBottomLeft = iToPos + m_pBoard->GetRowSize() - 1;
+	int iBottomRight = iToPos + m_pBoard->GetRowSize() + 1;
 
-	PieceType pt;
-	spPlayer->GetType(&pt);
+	PieceType pt = spPlayer->GetType();
 	DirectionKind dk = (pt == ptRed) ? dkDown : dkUp;
 
 	if (dk == dkUp)
 	{
-		IPiecePtr spPieceTopLeft;
-		if (m_spBoard->GetPiece(iTopLeft, &spPieceTopLeft))
+		IPiecePtr spPieceTopLeft = m_pBoard->GetPiece(iTopLeft);
+		if (spPieceTopLeft)
 		{
-			PieceType ptTopLeft;
-			spPieceTopLeft->GetType(&ptTopLeft);
-			if (pt != ptTopLeft)
+			if (pt != spPieceTopLeft->GetType())
 			{
 				if (iBottomRight == iFromPos)
 				{
 					return true;
 				}
-				else if (!m_spBoard->IsOccupied(iBottomRight))
+				else if (!m_pBoard->IsOccupied(iBottomRight))
 				{
 					return true;
 				}
 			}
 		}
-		IPiecePtr spPieceTopRight;
-		if (m_spBoard->GetPiece(iTopRight, &spPieceTopRight))
+		IPiecePtr spPieceTopRight = m_pBoard->GetPiece(iTopRight);
+		if (spPieceTopRight)
 		{
-			PieceType ptTopRight;
-			spPieceTopRight->GetType(&ptTopRight);
-			if (pt != ptTopRight)
+			if (pt != spPieceTopRight->GetType())
 			{
 				if (iBottomLeft == iFromPos)
 				{
 					return true;
 				}
-				else if (!m_spBoard->IsOccupied(iBottomLeft))
+				else if (!m_pBoard->IsOccupied(iBottomLeft))
 				{
 					return true;
 				}
@@ -178,35 +168,31 @@ bool Board::MovementPrimitives::CanLosePiece(IPlayer *pPlayer, int iFromPos, int
 	}
 	else
 	{
-		IPiecePtr spPieceBottomLeft;
-		if (m_spBoard->GetPiece(iBottomLeft, &spPieceBottomLeft))
+		IPiecePtr spPieceBottomLeft = m_pBoard->GetPiece(iBottomLeft);
+		if (spPieceBottomLeft)
 		{
-			PieceType ptBottomLeft;
-			spPieceBottomLeft->GetType(&ptBottomLeft);
-			if (pt != ptBottomLeft)
+			if (pt != spPieceBottomLeft->GetType())
 			{
 				if (iTopRight == iFromPos)
 				{
 					return true;
 				}
-				else if (!m_spBoard->IsOccupied(iTopRight))
+				else if (!m_pBoard->IsOccupied(iTopRight))
 				{
 					return true;
 				}
 			}
 		}
-		IPiecePtr spPieceBottomRight;
-		if (m_spBoard->GetPiece(iBottomRight, &spPieceBottomRight))
+		IPiecePtr spPieceBottomRight = m_pBoard->GetPiece(iBottomRight);
+		if (spPieceBottomRight)
 		{
-			PieceType ptBottomRight;
-			spPieceBottomRight->GetType(&ptBottomRight);
-			if (pt != ptBottomRight)
+			if (pt != spPieceBottomRight->GetType())
 			{
 				if (iTopLeft == iFromPos)
 				{
 					return true;
 				}
-				else if (!m_spBoard->IsOccupied(iTopLeft))
+				else if (!m_pBoard->IsOccupied(iTopLeft))
 				{
 					return true;
 				}

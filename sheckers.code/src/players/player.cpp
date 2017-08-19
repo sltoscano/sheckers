@@ -14,41 +14,25 @@ PlayerPieces::~PlayerPieces()
 {
 }
 
-long PlayerPieces::AddRef()
+IPiecePtr PlayerPieces::GetNext()
 {
-	return CAutoRef::AddRef();
-}
-
-long PlayerPieces::Release()
-{
-	return CAutoRef::Release();
-}
-
-bool PlayerPieces::GetNext(IPiece **ppPiece)
-{
-	if (ppPiece == NULL)
-		return false;
-
 	if (m_iter == m_pieces.end())
-		return false;
+		return NULL;
 
 	IPiecePtr spPiece = *m_iter;
-	*ppPiece = spPiece.Detach();
 	m_iter++;
-	return true;
+	return spPiece;
 }
 
-bool PlayerPieces::AddQuery(vector<IPiecePtr> &pieces)
+void PlayerPieces::AddQuery(vector<IPiecePtr> &pieces)
 {
-	FAILED_ASSERT_RETURN(false, m_pieces.size() == 0);
 	m_pieces = pieces;
 	m_iter = m_pieces.begin();
-	return true;
 }
 
-Player::Player(wstring wstrName, PieceType pt, int iPieceCount)
+Player::Player(wchar_t* wstrName, PieceType pt, int iPieceCount, IFeedback *pFeedback)
 {
-	m_wstrName = wstrName;
+	m_wstrName = wstring(wstrName);
 	m_pt = pt;
 	m_iInitialPieceCount = iPieceCount;
 	m_iLastMovePosition = EmptyPosition;
@@ -58,29 +42,15 @@ Player::~Player()
 {
 }
 
-long Player::AddRef()
+bool Player::AddPiece(IPiecePtr spPiece)
 {
-	return CAutoRef::AddRef();
-}
-
-long Player::Release()
-{
-	return CAutoRef::Release();
-}
-
-bool Player::AddPiece(IPiece *pPiece)
-{
-	IPiecePtr spPiece(pPiece);
-	FAILED_ASSERT_RETURN(false, spPiece != NULL);
 	m_pieces.push_back(spPiece);
 	return true;
 }
 
-bool Player::LosePiece(IPiece *pPiece)
+bool Player::LosePiece(IPiecePtr spPiece)
 {
-	IPiecePtr spPiece(pPiece);
-	PieceType pt;
-	FAILED_ASSERT_RETURN(false, spPiece->GetType(&pt));
+	PieceType pt = spPiece->GetType();
 	// Piece to remove should be from the same player
 	FAILED_ASSERT_RETURN(false, pt == m_pt);
 	PieceIter iter;
@@ -91,11 +61,9 @@ bool Player::LosePiece(IPiece *pPiece)
 	return true;
 }
 
-bool Player::CapturePiece(IPiece *pPiece)
+bool Player::CapturePiece(IPiecePtr spPiece)
 {
-	IPiecePtr spPiece(pPiece);
-	PieceType pt;
-	FAILED_ASSERT_RETURN(false, spPiece->GetType(&pt));
+	PieceType pt = spPiece->GetType();
 	// Piece to capture should not be from the same player
 	FAILED_ASSERT_RETURN(false, pt != m_pt);
 	m_capturedPieces.push_back(spPiece);
@@ -112,22 +80,14 @@ int Player::GetPieceCapturedCount() const
 	return static_cast<int>(m_capturedPieces.size());
 }
 
-bool Player::GetName(wstring *pwstrName) const
+wstring Player::GetName() const
 {
-	if (pwstrName == NULL)
-		return false;
-
-	*pwstrName = m_wstrName;
-	return true;
+	return m_wstrName;
 }
 
-bool Player::GetType(PieceType *ppt) const
+PieceType Player::GetType() const
 {
-	if (ppt == NULL)
-		return false;
-
-	*ppt = m_pt;
-	return true;
+	return m_pt;
 }
 
 int Player::GetInitialPieceCount() const
@@ -140,17 +100,15 @@ int Player::GetLastMovePosition() const
 	return m_iLastMovePosition;
 }
 
-bool Player::SetLastMovePosition(int iPos)
+void Player::SetLastMovePosition(int iPos)
 {
 	m_iLastMovePosition = iPos;
-	return true;
 }
 
-bool Player::GetPieces(IPlayerPieces **ppPieces)
+IPlayerPiecesPtr Player::GetPieces()
 {
-	PlayerPieces *pPlayerPieces = new PlayerPieces();
+	IPlayerPieces * pPlayerPieces(new PlayerPieces());
+	pPlayerPieces->AddQuery(m_pieces);
 	IPlayerPiecesPtr spPieces(pPlayerPieces);
-	FAILED_ASSERT_RETURN(false, pPlayerPieces->AddQuery(m_pieces));
-	*ppPieces = spPieces.Detach();
-	return true;
+	return spPieces;
 }

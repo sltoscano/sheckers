@@ -1,9 +1,7 @@
 // Copyright: Steven Toscano
 
-#include "std.h"
 #include "common.h"
 
-#include "factories.h"
 #include "piece.h"
 
 Piece::Piece(PieceType pt) :
@@ -17,53 +15,29 @@ Piece::~Piece()
 {
 }
 
-long Piece::AddRef()
+PieceType Piece::GetType() const
 {
-	return CAutoRef::AddRef();
+	return m_pt;
 }
 
-long Piece::Release()
+int Piece::GetPosition() const
 {
-	return CAutoRef::Release();
+	return m_iPosition;
 }
 
-bool Piece::GetType(enum PieceType *ppt) const
+void Piece::SetPosition(int iPosition)
 {
-	if (ppt == NULL)
-		return false;
-
-	*ppt = m_pt;
-	return true;
-}
-
-bool Piece::GetPosition(int *piPosition) const
-{
-	if (piPosition == NULL)
-		return false;
-
-	*piPosition = m_iPosition;
-	return true;
-}
-
-bool Piece::SetPosition(int iPosition)
-{
-	FAILED_ASSERT_RETURN(false, iPosition == EmptyPosition ? m_iPosition != EmptyPosition : 1);
-	FAILED_ASSERT_RETURN(false, m_iPosition != iPosition);
+	FAILED_ASSERT_RETURN(, iPosition == EmptyPosition ? m_iPosition != EmptyPosition : 1);
+	FAILED_ASSERT_RETURN(, m_iPosition != iPosition);
 	m_iPosition = iPosition;
-	return true;
 }
 
-bool Piece::GetDirection(enum DirectionKind *pdk) const
+DirectionKind Piece::GetDirection() const
 {
-	if (pdk == NULL)
-		return false;
-
-	*pdk = m_dk;
-	return true;
+	return m_dk;
 }
 
-bool Piece::SetDirection(enum DirectionKind dk)
+void Piece::SetDirection(enum DirectionKind dk)
 {
 	m_dk = dk;
-	return true;
 }

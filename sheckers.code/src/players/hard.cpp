@@ -3,15 +3,20 @@
 #include "std.h"
 #include "common.h"
 
-#include "io.h"
 #include "rules.h"
+#include "factories.h"
 #include "player.h"
 
-#include "hardcomp.h"
+#include "hard.h"
+#include <map>
 
-ComputerHard::ComputerHard(wstring wstrName, PieceType pt, int iPieceCount) :
-	Player(wstrName, pt, iPieceCount)
+using namespace std;
+
+ComputerHard::ComputerHard(wchar_t *wstrName, PieceType pt, int iPieceCount,
+						   IFeedback *pFeedback) :
+	Player(wstrName, pt, iPieceCount, pFeedback), m_spFeedback(pFeedback)
 {
+	//m_spFeedback->SetPlayerName(m_wstrName.c_str());
 }
 
 ComputerHard::~ComputerHard()
@@ -20,114 +25,178 @@ ComputerHard::~ComputerHard()
 
 MoveResult ComputerHard::MakeMove(IBoard *pBoard, MoveResult mrLastMove)
 {
+	
 	IBoardPtr spBoard(pBoard);
 	FAILED_ASSERT_RETURN(mrError, spBoard != NULL);
 
-	Rules rules;
 	vector<Move> moves;
-	FAILED_ASSERT_RETURN(mrError, rules.GetLegalMoves(spBoard, this, mrLastMove, moves));
-
-	UserOutput output(m_wstrName);
+	FAILED_ASSERT_RETURN(mrError, Rules::GetLegalMoves(spBoard, this, mrLastMove, moves));
 
 	if (moves.empty())
 	{
-		output.Write(NULL, EmptyPosition, dkUp, mkLeft, mrNone);
+		m_spFeedback->Write(NULL, EmptyPosition, dkUp, mkLeft, mrNone);
 		return mrNone;
 	}
 
-	vector<Move> legalJumps;
-	vector<Move> legalNonJumps;
+	int iBreadth = 0;
+	map<int, Move> bestMoves;
 	for each (const Move &move in moves)
 	{
-		if (move.mr == mrLegalJump)
-			legalJumps.push_back(move);
-		else
-			legalNonJumps.push_back(move);
+		++iBreadth;
+		GameTree tree(spBoard, m_pt, 2);
+		FAILED_ASSERT_RETURN(mrError, tree.Generate(0, iBreadth, spBoard, this, mrLastMove, move.iPos, move.dk, move.mk, 0));
+		int iCount;
+		FAILED_ASSERT_RETURN(mrError, !tree.m_capturedPieceCounts.empty());
+		sort(tree.m_capturedPieceCounts.begin(), tree.m_capturedPieceCounts.end());
+		iCount = tree.m_capturedPieceCounts.back();
+		if (bestMoves.find(iCount) == bestMoves.end())
+			bestMoves.insert(make_pair(iCount, move));
 	}
+	
+	map<int, Move>::iterator iter = bestMoves.end();
+	--iter;
+	Move &move = iter->second;
 
-	// Generate the jump trees for each legal jump
-//	cout << "GENERATE LEAVES" << endl;
-	vector<LeafNode> allLeafNodes;
-	for each (const Move &jump in legalJumps)
-	{
-		JumpTree tree(jump);
-		FAILED_ASSERT_RETURN(mrError, tree.Generate(spBoard, this, jump, 0));
-		allLeafNodes.insert(allLeafNodes.end(), tree.m_leafNodes.begin(), tree.m_leafNodes.end());
-	}
+	MoveResult mr;
+	m_spFeedback->Write(spBoard, move.iPos, move.dk, move.mk, move.mr);
+	FAILED_ASSERT_RETURN(mrError, spBoard->PerformLegalMove(this, move.iPos, move.dk, move.mk, &mr));
+	FAILED_ASSERT_RETURN(mrError, mr == move.mr);
+	return mr;
+}
 
-	// If this jump can take more than one piece then favor it
-//	cout << "CHECK IF MORE THAN ONE PIECE JUMP" << endl;
-	if (!allLeafNodes.empty())
+GameTree::GameTree(IBoard *pBoard, PieceType pt, int iMaxDepth) :
+	m_spBoardSeed(pBoard),
+	m_ptSeed(pt), 
+	m_iMaxDepth(iMaxDepth)
+{
+}
+
+GameTree::~GameTree()
+{
+}
+
+bool GameTree::Generate(int iTop, int iBreadth, IBoard *pBoard, IPlayer *pPlayer, MoveResult mrLastMove, 
+						int iPos, DirectionKind dk, MoveKind mk, int iDepth)
+{
+	IBoardPtr spBoardOriginal(pBoard);
+	FAILED_ASSERT_RETURN(false, spBoardOriginal != NULL);
+	IPlayerPtr spPlayerOriginalCurrent(pPlayer);
+	FAILED_ASSERT_RETURN(false, spPlayerOriginalCurrent != NULL);
+	PieceType ptCurrent;
+	FAILED_ASSERT_RETURN(false, spPlayerOriginalCurrent->GetType(&ptCurrent));
+	PieceType ptOpponent = (ptCurrent == ptRed) ? ptBlack : ptRed;
+	IPlayerPtr spPlayerOriginalOpponent;
+	FAILED_ASSERT_RETURN(false, spBoardOriginal->GetPlayer(ptOpponent, &spPlayerOriginalOpponent));
+	int iRowSize = spBoardOriginal->GetRowSize();
+
+	// Make a copy of the current board state as a child node
+	IBoardPtr spBoardCopy(BoardFactory::Create(gkCheckers, iRowSize, iRowSize));
+	FAILED_ASSERT_RETURN(false, spBoardCopy != NULL);
+	IPlayerPtr spPlayer1(PlayerFactory::Create(pkComputerHard, L"Player1", ptRed, 0, NULL));
+	FAILED_ASSERT_RETURN(false, spPlayer1 != NULL);
+	IPlayerPtr spPlayer2(PlayerFactory::Create(pkComputerHard, L"Player2", ptBlack, 0, NULL));
+	FAILED_ASSERT_RETURN(false, spPlayer2 != NULL);
+
+	// Setup an empty board and initialize the players last move positions
+	IPlayerPtr spCurrentPlayer = (ptCurrent == ptRed) ? spPlayer1 : spPlayer2;
+	IPlayerPtr spOpponentPlayer = (ptOpponent == ptBlack) ? spPlayer2 : spPlayer1;
+	FAILED_ASSERT_RETURN(false, spCurrentPlayer->SetLastMovePosition(spPlayerOriginalCurrent->GetLastMovePosition()));
+	FAILED_ASSERT_RETURN(false, spOpponentPlayer->SetLastMovePosition(spPlayerOriginalOpponent->GetLastMovePosition()));
+	FAILED_ASSERT_RETURN(false, spBoardCopy->Setup(spPlayer1, spPlayer2));
+
+	// Walk the new board and add pieces to match the
+	//	board that was passed in
+	for (int i=0; i < spBoardCopy->GetBoardSize(); i++)
 	{
-		sort(allLeafNodes.begin(), allLeafNodes.end(), LeafGreater);
-		if (allLeafNodes.front().iJumpDepth > 0)
+		IPiecePtr spPiece;
+		if (spBoardOriginal->GetPiece(i, &spPiece))
 		{
-			Move &move = allLeafNodes.front().seedMove;
-			MoveResult mr;
-			output.Write(spBoard, move.iPos, move.dk, move.mk, move.mr);
-			FAILED_ASSERT_RETURN(mrError, spBoard->PerformLegalMove(this, move.iPos, move.dk, move.mk, &mr));
-			FAILED_ASSERT_RETURN(mrError, mr == move.mr);
-			return mr;
+			FAILED_ASSERT_RETURN(false, spPiece != NULL);
+			PieceType pt;
+			FAILED_ASSERT_RETURN(false, spPiece->GetType(&pt));
+			IPiecePtr spPieceCopy(PieceFactory::Create(pt));
+			FAILED_ASSERT_RETURN(false, spPieceCopy != NULL);
+			if (pt == ptRed)
+				FAILED_ASSERT_RETURN(false, spPlayer1->AddPiece(spPieceCopy));
+			else
+				FAILED_ASSERT_RETURN(false, spPlayer2->AddPiece(spPieceCopy));
+			FAILED_ASSERT_RETURN(false, spBoardCopy->PlacePiece(i, spPieceCopy));
 		}
 	}
 
-	// Otherwise favor a jump that will not eventually be captured
-//	cout << "CHECK JUMP CANNOT BE CAPTURED" << endl;
-	if (!allLeafNodes.empty())
+	// Now add each player's captured pieces to get the game to the right state
+	for (int i=0; i < spPlayerOriginalCurrent->GetPieceCapturedCount(); i++)
 	{
-		for each (const LeafNode &node in allLeafNodes)
-		{
-			if (!node.spBoard->CanLosePiece(this, EmptyPosition, node.iPos))
-			{
-				const Move & move = node.seedMove;
-				MoveResult mr;
-				output.Write(spBoard, move.iPos, move.dk, move.mk, move.mr);
-				FAILED_ASSERT_RETURN(mrError, spBoard->PerformLegalMove(this, move.iPos, move.dk, move.mk, &mr));
-				FAILED_ASSERT_RETURN(mrError, mr == move.mr);
-				return mr;
-			}
-		}
+		IPiecePtr spPiece(PieceFactory::Create(ptOpponent));
+		FAILED_ASSERT_RETURN(false, spCurrentPlayer->CapturePiece(spPiece));
+	}
+	for (int i=0; i < spPlayerOriginalOpponent->GetPieceCapturedCount(); i++)
+	{
+		IPiecePtr spPiece(PieceFactory::Create(ptCurrent));
+		FAILED_ASSERT_RETURN(false, spOpponentPlayer->CapturePiece(spPiece));
 	}
 
-	// If the jumps all lead to positions that can be taken by opponent
-	//	then find a move that doesn't get piece captured
-//	cout << "CHECK MOVE CANNOT BE CAPTURED" << endl;
-	random_shuffle(legalNonJumps.begin(), legalNonJumps.end());
-	for each (const Move &nonJump in legalNonJumps)
+	MoveResult mrTry;
+	FAILED_ASSERT_RETURN(false, spBoardCopy->TryMove(iPos, mk, dk, &mrTry));
+	FAILED_ASSERT_RETURN(false, mrTry != mrIllegal);
+//	UserOutput output;
+//	UserInput input;
+//	string s(iDepth, ' ');
+//	cout << s.c_str() << "taking the move" << endl;
+//	cout << s.c_str();
+//	output.Write(spBoardCopy, iPos, dk, mk, mrTry);
+	FAILED_ASSERT_RETURN(false, spBoardCopy->PerformLegalMove(spCurrentPlayer, iPos, dk, mk, &mrLastMove));
+	FAILED_ASSERT_RETURN(false, mrLastMove == mrTry);
+/*
+	input.Clear();
+	cout << "depth=" << iDepth << " (" << iBreadth << ")";
+	cout << " (" << iTop << ")" << endl;
+	output.Write(spBoardCopy);
+		PieceType ptCurr;
+		spCurrentPlayer->GetType(&ptCurr);
+		int iCap = (m_ptSeed == ptCurr) ? 
+			spCurrentPlayer->GetPieceCapturedCount() : 
+			spOpponentPlayer->GetPieceCapturedCount();
+	cout << "seed captured=" << iCap << endl;
+	output.Write(m_spBoardSeed);
+	input.Read();
+*/
+
+	// Generate all legal moves from this point
+	vector<Move> moves;
+	FAILED_ASSERT_RETURN(false, Rules::GetLegalMoves(spBoardCopy, spCurrentPlayer, mrLastMove, moves));
+
+	// If there are no legal moves, try the next player
+	if (moves.empty())
 	{
-		if (!rules.CanLosePieceIfMoveTaken(spBoard, this, nonJump))
-		{
-			MoveResult mr;
-			output.Write(spBoard, nonJump.iPos, nonJump.dk, nonJump.mk, nonJump.mr);
-			FAILED_ASSERT_RETURN(mrError, spBoard->PerformLegalMove(this, nonJump.iPos, nonJump.dk, nonJump.mk, &mr));
-			FAILED_ASSERT_RETURN(mrError, mr == nonJump.mr);
-			return mr;
-		}
+		IPlayerPtr tmp = spCurrentPlayer;
+		spCurrentPlayer = spOpponentPlayer;
+		spOpponentPlayer = tmp;
+		mrLastMove = mrNone;
+		FAILED_ASSERT_RETURN(false, Rules::GetLegalMoves(spBoardCopy, spCurrentPlayer, mrLastMove, moves));
 	}
 
-	// If a capture cannot be avoided, then take a random jump
-//	cout << "TAKE RANDOM JUMP" << endl;
-	random_shuffle(legalJumps.begin(), legalJumps.end());
-	for each (const Move &jump in legalJumps)
+	// If max depth has been reached, or niether player can move
+	if (iDepth > m_iMaxDepth || moves.empty())
 	{
-		MoveResult mr;
-		output.Write(spBoard, jump.iPos, jump.dk, jump.mk, jump.mr);
-		FAILED_ASSERT_RETURN(mrError, spBoard->PerformLegalMove(this, jump.iPos, jump.dk, jump.mk, &mr));
-		FAILED_ASSERT_RETURN(mrError, mr == jump.mr);
-		return mr;
+		PieceType ptCurrent;
+		spCurrentPlayer->GetType(&ptCurrent);
+		int iWeight = (m_ptSeed == ptCurrent) ? 
+			spCurrentPlayer->GetPieceCapturedCount() : 
+			spOpponentPlayer->GetPieceCapturedCount();
+		m_capturedPieceCounts.push_back(iWeight);
+		return true;
 	}
 
-	// No jumps, then just make a random regular move and lose a piece
-//	cout << "TAKE RANDOM NONJUMP" << endl;
-	for each (const Move &nonJump in legalNonJumps)
+	// Otherwise there are still legal moves, recurse on each
+	int iTop = 0;
+	for each (const Move &move in moves)
 	{
-		MoveResult mr;
-		output.Write(spBoard, nonJump.iPos, nonJump.dk, nonJump.mk, nonJump.mr);
-		FAILED_ASSERT_RETURN(mrError, spBoard->PerformLegalMove(this, nonJump.iPos, nonJump.dk, nonJump.mk, &mr));
-		FAILED_ASSERT_RETURN(mrError, mr == nonJump.mr);
-		return mr;
+		++iTop;
+		if (!Generate(iTop, iBreadth, spBoardCopy, spCurrentPlayer, mrLastMove, move.iPos, move.dk, move.mk, iDepth+1))
+			return false;
+//		cout << endl;
 	}
 
-	ASSERTMSG(false, "There should have been at least one legal move.");
-	return mrError;
+	return true;
 }

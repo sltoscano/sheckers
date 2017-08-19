@@ -3,15 +3,16 @@
 #include "std.h"
 #include "common.h"
 
-#include "io.h"
 #include "rules.h"
 #include "player.h"
 
 #include "human.h"
 
-Human::Human(wstring wstrName, PieceType pt, int iPieceCount) :
-	Player(wstrName, pt, iPieceCount)
+Human::Human(wchar_t *wstrName, PieceType pt, int iPieceCount,
+			 IFeedback *pFeedback) :
+	Player(wstrName, pt, iPieceCount, pFeedback), m_spFeedback(pFeedback)
 {
+	//m_spFeedback->SetPlayerName(m_wstrName.c_str());
 }
 
 Human::~Human()
@@ -23,14 +24,12 @@ MoveResult Human::MakeMove(IBoard *pBoard, MoveResult mrLastMove)
 	IBoardPtr spBoard(pBoard);
 	FAILED_ASSERT_RETURN(mrError, spBoard != NULL);
 
-	Rules rules;
 	vector<Move> moves;
-	FAILED_ASSERT_RETURN(mrError, rules.GetLegalMoves(spBoard, this, mrLastMove, moves));
+	FAILED_ASSERT_RETURN(mrError, Rules::GetLegalMoves(spBoard, this, mrLastMove, moves));
 
 	if (moves.empty())
 	{
-		UserOutput output(m_wstrName);
-		output.Write(NULL, EmptyPosition, dkUp, mkLeft, mrNone);
+		m_spFeedback->Write(NULL, EmptyPosition, dkUp, mkLeft, mrNone);
 		return mrNone;
 	}
 	else
@@ -38,11 +37,10 @@ MoveResult Human::MakeMove(IBoard *pBoard, MoveResult mrLastMove)
 		int iPos;
 		MoveKind mk;
 		DirectionKind dk;
-		UserInput input(m_wstrName);
-		while (input.ReadMove(spBoard, m_pt, &iPos, &dk, &mk))
+		while (m_spFeedback->ReadMove(spBoard, m_pt, &iPos, &dk, &mk))
 		{
 			// Check the validity of the user entered move
-			if (rules.IsLegal(iPos, dk, mk, moves))
+			if (Rules::IsLegal(iPos, dk, mk, moves))
 			{
 				MoveResult mr;
 				FAILED_ASSERT_RETURN(mrError, spBoard->PerformLegalMove(this, iPos, dk, mk, &mr));
@@ -51,13 +49,12 @@ MoveResult Human::MakeMove(IBoard *pBoard, MoveResult mrLastMove)
 			else
 			{
 				// Offer to list the set of legal moves
-				if (input.ListLegalMoves())
+				if (m_spFeedback->ListLegalMoves())
 				{
-					UserOutput output;
-					input.Clear();
-					output.Write(spBoard);
+					m_spFeedback->Clear();
+					m_spFeedback->Write(spBoard);
 					for each (const Move &move in moves)
-						output.Write(spBoard, move.iPos, move.dk, move.mk, move.mr);
+						m_spFeedback->Write(spBoard, move.iPos, move.dk, move.mk, move.mr);
 				}
 			}
 		}

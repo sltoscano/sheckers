@@ -3,22 +3,17 @@
 #pragma once
 
 class PlayerPieces :
-	public IPlayerPieces,
-	public CAutoRef
+	public IPlayerPieces
 {
 public:
 	PlayerPieces();
 	~PlayerPieces();
 
-	// IReferenceCounted methods
-	long AddRef();
-	long Release();
-
 	// IPlayerPieces methods
-	bool GetNext(IPiece **ppPiece);
+	IPiecePtr GetNext();
 
 	// Non interface methods
-	bool AddQuery(vector<IPiecePtr> &pieces);
+	void AddQuery(vector<IPiecePtr> &pieces);
 
 private:
 	vector<IPiecePtr> m_pieces;
@@ -31,30 +26,25 @@ private:
 };
 
 class Player : 
-	public IPlayer,
-	public CAutoRef
+	public IPlayer
 {
 protected:
-	Player(wstring wstrName, PieceType pt, int iPieceCount);
+	Player(wstring wstrName, PieceType pt, int iPieceCount, IFeedbackPtr spFeedback);
 	virtual ~Player();
 
 public:
-	// IReferenceCounted methods
-	long AddRef();
-	long Release();
-
 	// IPlayer methods
 	bool AddPiece(IPiece *pPiece);
 	bool LosePiece(IPiece *pPiece);
 	bool CapturePiece(IPiece *pPiece);
 	int  GetPieceOwnedCount() const;
 	int  GetPieceCapturedCount() const;
-	bool GetName(wstring *pwstrName) const;
-	bool GetType(PieceType *ppt) const;
+	wstring GetName() const;
+	PieceType GetType() const;
 	int  GetInitialPieceCount() const;
 	int  GetLastMovePosition() const;
-	bool SetLastMovePosition(int iPos);
-	bool GetPieces(IPlayerPieces **ppPieces);
+	void SetLastMovePosition(int iPos);
+	IPlayerPiecesPtr GetPieces();
 
 	// IPlayer method to be implemented by derived types
 	virtual MoveResult MakeMove(IBoard *pBoard, MoveResult mrLastMove) = 0;
