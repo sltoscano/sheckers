@@ -3,13 +3,15 @@
 #include "std.h"
 #include "common.h"
 
-#include "factories.h"
 #include "piece.h"
 #include "player.h"
-#include "computer.h"
+#include "hardcomp.h"
+#include "easycomp.h"
 #include "human.h"
 #include "board.h"
 #include "game.h"
+
+#include "factories.h"
 
 IPiece *PieceFactory::Create(PieceType pt)
 {
@@ -22,8 +24,11 @@ IPlayer *PlayerFactory::Create(PlayerKind pk, wstring wstrName, PieceType pt, in
 
 	switch (pk)
 	{
-	case pkComputer:
-		pPlayer = new Computer(wstrName, pt, iPieceCount);
+	case pkComputerEasy:
+		pPlayer = new ComputerEasy(wstrName, pt, iPieceCount);
+		break;
+	case pkComputerHard:
+		pPlayer = new ComputerHard(wstrName, pt, iPieceCount);
 		break;
 	case pkHuman:
 		pPlayer = new Human(wstrName, pt, iPieceCount);

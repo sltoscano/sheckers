@@ -14,12 +14,12 @@ public:
 	bool ReadBoardRowSize(int *piBoardRowSize);
 	bool ReadPieceCount(int iBoardRowSize, int *piPieceCount);
 	bool ReadPlayer(wstring *pwstrPlayer, PlayerKind *ppkPlayer);
-	bool ReadMove(IBoard *pBoard, int *piPos, DirectionKind *pdk, MoveKind *pmk);
+	bool ReadMove(IBoard *pBoard, PieceType pt, int *piPos, DirectionKind *pdk, MoveKind *pmk);
 	bool ListLegalMoves();
 
 private:
 	bool ReadInt(wstring wstrMessage, int *piOut);
-	bool ReadPosition(IBoard *pBoard, int *piPos);
+	bool ReadPosition(IBoard *pBoard, PieceType pt, int *piPos);
 	bool ReadMoveDirection(DirectionKind *pdk, MoveKind *pmk);
 
 private:

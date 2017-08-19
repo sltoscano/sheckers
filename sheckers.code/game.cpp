@@ -89,9 +89,9 @@ MoveResult Game::DoTurn(MoveResult mrLast)
 	if (mr == mrForfeit)
 		m_gs = gsForfeit;
 	if (m_spPlayer1->GetPieceOwnedCount() == 0)
-		m_gs = gsPlayer1Wins;
-	if (m_spPlayer2->GetPieceOwnedCount() == 0)
 		m_gs = gsPlayer2Wins;
+	if (m_spPlayer2->GetPieceOwnedCount() == 0)
+		m_gs = gsPlayer1Wins;
 
 	return mr;
 }

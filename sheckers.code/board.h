@@ -33,6 +33,7 @@ public:
 	int  GetBoardSize() const;
 	bool IsPositionAtEdge(int iPos) const;
 	int  GetNewPositionIfMoved(int iPos, MoveKind mk, DirectionKind dk) const;
+	bool CanLosePiece(IPlayer *pPlayer, int iFromPos, int iToPos) const;
 	bool TryMove(int iPos, MoveKind mk, DirectionKind dk, MoveResult *pmr) const;
 	bool PerformLegalMove(IPlayer *pPlayer, int iSourcePos, DirectionKind dkSource, MoveKind mk, MoveResult *pmr);
 
@@ -45,6 +46,7 @@ private:
 		friend class Board;
 		MovementPrimitives(const IBoard *pBoard);
 		bool IsMoveGoingOutsideBoard(int iPos, DirectionKind dk, MoveKind mk) const;
+		bool CanLosePiece(IPlayer *pPlayer, int iFromPos, int iToPos) const;
 		int  GetNewPositionIfMoved(int iPos, DirectionKind dk, MoveKind mk) const;
 		bool IsJumpPossible(int iPos, DirectionKind dk, MoveKind mk) const;
 		IBoardPtr m_spBoard;

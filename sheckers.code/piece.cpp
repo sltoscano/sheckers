@@ -3,6 +3,7 @@
 #include "std.h"
 #include "common.h"
 
+#include "factories.h"
 #include "piece.h"
 
 Piece::Piece(PieceType pt) :

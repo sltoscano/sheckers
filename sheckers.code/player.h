@@ -65,11 +65,8 @@ protected:
 	typedef vector<IPiecePtr>::const_iterator PieceIter;
 	int m_iInitialPieceCount;
 	int m_iLastMovePosition;
-	wstring m_wstrName;
-
-private:
-	// For consistency checks
 	PieceType m_pt;
+	wstring m_wstrName;
 
 private:
 	// Disallow copy and assignment

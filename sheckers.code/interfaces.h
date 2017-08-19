@@ -60,7 +60,8 @@ enum GameKind
 
 enum PlayerKind
 {
-	pkComputer,
+	pkComputerHard,
+	pkComputerEasy,
 	pkHuman
 };
 
@@ -90,6 +91,7 @@ public:
 	virtual int  GetBoardSize() const = 0;
 	virtual bool IsPositionAtEdge(int iPos) const = 0;
 	virtual int  GetNewPositionIfMoved(int iPos, MoveKind mk, DirectionKind dk) const = 0;
+	virtual bool CanLosePiece(IPlayer *pPlayer, int iFromPos, int iToPos) const = 0;
 	virtual bool TryMove(int iPos, MoveKind mk, DirectionKind dk, MoveResult *pmr) const = 0;
 	virtual bool PerformLegalMove(IPlayer *pPlayer, int iSourcePos, DirectionKind dkSource, MoveKind mk, MoveResult *pmr) = 0;
 };

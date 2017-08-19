@@ -2,7 +2,7 @@
 
 #include "std.h"
 #include "common.h"
-#include "factories.h"
+
 #include <iostream>
 #include <sstream>
 
@@ -97,18 +97,31 @@ bool UserInput::ReadPlayer(wstring *pwstrPlayer, PlayerKind *ppkPlayer)
 	{
 		wstringstream wstrMessage;
 		wstrMessage << L"Please choose the type of the next player." << endl;
-		wstrMessage << L"'0' for computer player '1' for human player, or 'q' to quit: ";
-		int iPlayer;
+		wstrMessage << L"\t'0' for hard computer player" << endl; 
+		wstrMessage << L"\t'1' for easy computer player" << endl;
+		wstrMessage << L"\t'2' for human player, or 'q' to quit: ";
+		int iPlayer = 0;
 		if (!UserInput::ReadInt(wstrMessage.str(), &iPlayer))
 			break;
-		if (iPlayer != 0 && iPlayer != 1)
+		if (iPlayer != 0 && iPlayer != 1 && iPlayer != 2)
 		{
 			wcout << L"Not a valid player kind." << endl;
 			Read();
 		}
 		else
 		{
-			*ppkPlayer = (iPlayer == 0) ? pkComputer : pkHuman;
+			switch(iPlayer)
+			{
+			case 0:
+				*ppkPlayer = pkComputerHard;
+				break;
+			case 1:
+				*ppkPlayer = pkComputerEasy;
+				break;
+			case 2:
+				*ppkPlayer = pkHuman;
+				break;
+			}
 			wcout << L"\tType in a name for this player: ";
 			wcin.ignore(255, L'\n');
 			wchar_t wszPlayer[20];
@@ -121,9 +134,9 @@ bool UserInput::ReadPlayer(wstring *pwstrPlayer, PlayerKind *ppkPlayer)
 	return false;
 }
 
-bool UserInput::ReadMove(IBoard *pBoard, int *piPos, DirectionKind *pdk, MoveKind *pmk)
+bool UserInput::ReadMove(IBoard *pBoard, PieceType pt, int *piPos, DirectionKind *pdk, MoveKind *pmk)
 {
-	if (ReadPosition(pBoard, piPos))
+	if (ReadPosition(pBoard, pt, piPos))
 		if (ReadMoveDirection(pdk, pmk))
 			return true;
 	return false;
@@ -153,7 +166,7 @@ bool UserInput::ReadInt(wstring wstrMessage, int *piOut)
 			wcin >> cValue;
 			if (cValue == L'q')
 			{
-				wcout << L"quitting.";
+				wcout << L"quitting." << endl;
 				break;
 			}
 			else
@@ -172,7 +185,7 @@ bool UserInput::ReadInt(wstring wstrMessage, int *piOut)
 	return false;
 }
 
-bool UserInput::ReadPosition(IBoard *pBoard, int *piPos)
+bool UserInput::ReadPosition(IBoard *pBoard, PieceType pt, int *piPos)
 {
 	IBoardPtr spBoard(pBoard);
 	FAILED_ASSERT_RETURN(false, spBoard != NULL);
@@ -185,7 +198,8 @@ bool UserInput::ReadPosition(IBoard *pBoard, int *piPos)
 		{
 			wstrMessage << m_wstrName.c_str() << L" ";
 		}
-		wstrMessage << L"type in the column number of the piece to move." << endl;
+		wstrMessage << L"type in the column number of the (";
+		wstrMessage << (pt == ptRed ? L"0" : L"X") << L") piece to move." << endl;
 		wstrMessage << L"\tMust be between 0 and " << iColEnd << L", or 'q' to quit: ";
 		int iCol = 0;
 		if (!UserInput::ReadInt(wstrMessage.str(), &iCol))

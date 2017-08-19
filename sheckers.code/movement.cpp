@@ -116,3 +116,103 @@ bool Board::MovementPrimitives::IsJumpPossible(int iPos, DirectionKind dk, MoveK
 
 	return true;
 }
+
+
+bool Board::MovementPrimitives::CanLosePiece(IPlayer *pPlayer, int iFromPos, int iToPos) const
+{
+	IPlayerPtr spPlayer(pPlayer);
+	FAILED_ASSERT_RETURN(false, spPlayer != NULL);
+
+	// If the new position after a jump is at the edge
+	//	then it can't be jumped by the opponent
+	if (m_spBoard->IsPositionAtEdge(iToPos))
+		return false;
+
+	// Otherwise check to see if an opponent piece is
+	//	poised for a legal jump over the new position
+	int iTopLeft = iToPos - m_spBoard->GetRowSize() - 1;
+	int iTopRight = iToPos - m_spBoard->GetRowSize() + 1;
+	int iBottomLeft = iToPos + m_spBoard->GetRowSize() - 1;
+	int iBottomRight = iToPos + m_spBoard->GetRowSize() + 1;
+
+	PieceType pt;
+	spPlayer->GetType(&pt);
+	DirectionKind dk = (pt == ptRed) ? dkDown : dkUp;
+
+	if (dk == dkUp)
+	{
+		IPiecePtr spPieceTopLeft;
+		if (m_spBoard->GetPiece(iTopLeft, &spPieceTopLeft))
+		{
+			PieceType ptTopLeft;
+			spPieceTopLeft->GetType(&ptTopLeft);
+			if (pt != ptTopLeft)
+			{
+				if (iBottomRight == iFromPos)
+				{
+					return true;
+				}
+				else if (!m_spBoard->IsOccupied(iBottomRight))
+				{
+					return true;
+				}
+			}
+		}
+		IPiecePtr spPieceTopRight;
+		if (m_spBoard->GetPiece(iTopRight, &spPieceTopRight))
+		{
+			PieceType ptTopRight;
+			spPieceTopRight->GetType(&ptTopRight);
+			if (pt != ptTopRight)
+			{
+				if (iBottomLeft == iFromPos)
+				{
+					return true;
+				}
+				else if (!m_spBoard->IsOccupied(iBottomLeft))
+				{
+					return true;
+				}
+			}
+		}
+	}
+	else
+	{
+		IPiecePtr spPieceBottomLeft;
+		if (m_spBoard->GetPiece(iBottomLeft, &spPieceBottomLeft))
+		{
+			PieceType ptBottomLeft;
+			spPieceBottomLeft->GetType(&ptBottomLeft);
+			if (pt != ptBottomLeft)
+			{
+				if (iTopRight == iFromPos)
+				{
+					return true;
+				}
+				else if (!m_spBoard->IsOccupied(iTopRight))
+				{
+					return true;
+				}
+			}
+		}
+		IPiecePtr spPieceBottomRight;
+		if (m_spBoard->GetPiece(iBottomRight, &spPieceBottomRight))
+		{
+			PieceType ptBottomRight;
+			spPieceBottomRight->GetType(&ptBottomRight);
+			if (pt != ptBottomRight)
+			{
+				if (iTopLeft == iFromPos)
+				{
+					return true;
+				}
+				else if (!m_spBoard->IsOccupied(iTopLeft))
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}

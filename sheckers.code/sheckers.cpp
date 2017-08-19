@@ -6,6 +6,9 @@
 #include "memleak.h"
 #include "io.h"
 
+#define AUTOMATED
+extern "C" void __stdcall Sleep(int dwMilliseconds);
+
 int main(int argc, char* argv[])
 {
 	UserInput input;
@@ -14,6 +17,14 @@ int main(int argc, char* argv[])
 	GameKind gk = gkCheckers;
 	output.Write(gk);
 
+#ifdef AUTOMATED
+	int iBoardRowSize = 8;
+	int iPieceCount = 12;
+	wstring wstrPlayer1 = L"Fred";
+	PlayerKind pkPlayer1 = pkComputerHard;
+	wstring wstrPlayer2 = L"George";
+	PlayerKind pkPlayer2 = pkComputerHard;
+#else
 	int iBoardRowSize;
 	if (!input.ReadBoardRowSize(&iBoardRowSize))
 		return 1;
@@ -35,6 +46,7 @@ int main(int argc, char* argv[])
 	PlayerKind pkPlayer2;
 	if (!input.ReadPlayer(&wstrPlayer2, &pkPlayer2))
 		return 1;
+#endif
 
 	IPlayerPtr spPlayer1(PlayerFactory::Create(pkPlayer1, wstrPlayer1, ptRed, iPieceCount));
 	IPlayerPtr spPlayer2(PlayerFactory::Create(pkPlayer2, wstrPlayer2, ptBlack, iPieceCount));
@@ -49,10 +61,36 @@ int main(int argc, char* argv[])
 		input.Clear();
 		output.Write(spBoard);
 		mr = spGame->DoTurn(mr);
+#ifdef AUTOMATED
+		Sleep(100);
+#else
 		input.Read();
+#endif
 	}
 
 	GameState gs = spGame->GetState();
+	input.Clear();
+	output.Write(spBoard);
 	output.Write(gs, wstrPlayer1, wstrPlayer2);
-	return gs == gsError ? 1 : 0;
+
+	int retval = 0;
+	switch(gs)
+	{
+	case gsError:
+		retval = 1;
+		break;
+	case gsForfeit:
+		retval = 2;
+		break;
+	case gsPlayer1Wins:
+		retval = 3;
+		break;
+	case gsPlayer2Wins:
+		retval = 4;
+		break;
+	case gsStalemate:
+		retval = 5;
+		break;
+	}
+	return retval;
 }

@@ -55,11 +55,15 @@ bool Board::Setup(IPlayer *pPlayer1, IPlayer *pPlayer2)
 	FAILED_ASSERT_RETURN(false, spPlayer1 != NULL);
 	FAILED_ASSERT_RETURN(false, spPlayer2 != NULL);
 
-	FAILED_ASSERT_RETURN(false, AddPieces(spPlayer1));
-	FAILED_ASSERT_RETURN(false, AddPieces(spPlayer2));
-
 	m_spPlayer1 = spPlayer1;
 	m_spPlayer2 = spPlayer2;
+
+	if (m_spPlayer1->GetInitialPieceCount() > 0)
+		FAILED_ASSERT_RETURN(false, AddPieces(m_spPlayer1));
+
+	if (m_spPlayer2->GetInitialPieceCount() > 0)
+		FAILED_ASSERT_RETURN(false, AddPieces(m_spPlayer2));
+
 	return true;
 }
 
@@ -93,6 +97,7 @@ bool Board::AddPieces(IPlayer *pPlayer)
 		{
 			IPiecePtr spPiece(PieceFactory::Create(pt));
 			FAILED_ASSERT_RETURN(false, spPiece != NULL);
+			FAILED_ASSERT_RETURN(false, spPiece->SetDirection(dk));
 			FAILED_ASSERT_RETURN(false, spPlayer->AddPiece(spPiece));
 			FAILED_ASSERT_RETURN(false, PlacePiece(i, spPiece));
 			iPlacedCount++;
@@ -136,10 +141,9 @@ bool Board::RemovePiece(int iPosition, IPiece **ppPiece)
 	if (ppPiece == NULL)
 		return false;
 
-	// Not asserting here since a user can ask if its
-	//	possible to remove a piece at this position
-	FAILED_RETURN(false, m_board[iPosition].fOccupied);
-	FAILED_RETURN(false, m_board[iPosition].spPiece != NULL);
+	// Can only remove a piece if it exists on the board
+	FAILED_ASSERT_RETURN(false, m_board[iPosition].fOccupied);
+	FAILED_ASSERT_RETURN(false, m_board[iPosition].spPiece != NULL);
 
 	// Remove the piece from the board
 	IPiecePtr spPieceToMove(m_board[iPosition].spPiece);
@@ -230,6 +234,12 @@ int Board::GetNewPositionIfMoved(int iPos, MoveKind mk, DirectionKind dk) const
 {
 	MovementPrimitives movement(this);
 	return movement.GetNewPositionIfMoved(iPos, dk, mk);
+}
+
+bool Board::CanLosePiece(IPlayer *pPlayer, int iFromPos, int iToPos) const
+{
+	MovementPrimitives movement(this);
+	return movement.CanLosePiece(pPlayer, iFromPos, iToPos);
 }
 
 bool Board::TryMove(int iPos, MoveKind mk, DirectionKind dk, MoveResult *pmr) const

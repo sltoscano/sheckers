@@ -3,9 +3,9 @@
 #include "std.h"
 #include "common.h"
 
-#include "player.h"
-#include "rules.h"
 #include "io.h"
+#include "rules.h"
+#include "player.h"
 
 #include "human.h"
 
@@ -23,9 +23,9 @@ MoveResult Human::MakeMove(IBoard *pBoard, MoveResult mrLastMove)
 	IBoardPtr spBoard(pBoard);
 	FAILED_ASSERT_RETURN(mrError, spBoard != NULL);
 
-	Rules rules(spBoard);
+	Rules rules;
 	vector<Move> moves;
-	FAILED_ASSERT_RETURN(mrError, rules.GetLegalMoves(this, mrLastMove, moves));
+	FAILED_ASSERT_RETURN(mrError, rules.GetLegalMoves(spBoard, this, mrLastMove, moves));
 
 	if (moves.empty())
 	{
@@ -39,7 +39,7 @@ MoveResult Human::MakeMove(IBoard *pBoard, MoveResult mrLastMove)
 		MoveKind mk;
 		DirectionKind dk;
 		UserInput input(m_wstrName);
-		while (input.ReadMove(spBoard, &iPos, &dk, &mk))
+		while (input.ReadMove(spBoard, m_pt, &iPos, &dk, &mk))
 		{
 			// Check the validity of the user entered move
 			if (rules.IsLegal(iPos, dk, mk, moves))
@@ -50,6 +50,7 @@ MoveResult Human::MakeMove(IBoard *pBoard, MoveResult mrLastMove)
 			}
 			else
 			{
+				// Offer to list the set of legal moves
 				if (input.ListLegalMoves())
 				{
 					UserOutput output;
